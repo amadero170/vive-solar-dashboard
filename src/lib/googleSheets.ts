@@ -1,0 +1,178 @@
+import { google } from "googleapis";
+import {
+  SalesRecord,
+  VendorSales,
+  SalesData,
+  MonthlySales,
+} from "@/types/sales";
+
+const project_id = process.env.GOOGLE_SHEETS_PROJECT_ID;
+const private_key = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+const service_account = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+const sheet_id = process.env.SHEET_ID;
+
+if (!project_id || !private_key || !service_account || !sheet_id) {
+  throw new Error("Missing required Google Sheets environment variables");
+}
+
+const auth = new google.auth.GoogleAuth({
+  credentials: {
+    type: "service_account",
+    project_id,
+    private_key,
+    client_email: service_account,
+  },
+  scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+});
+
+export async function getSalesData(): Promise<SalesData> {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    // Read from "Reporte Ventas 2025" sheet, columns A to S
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheet_id,
+      range: "ventas!A:E",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      throw new Error("No data found in sheet");
+    }
+
+    // Log raw data from Google Sheets
+    console.log("=== RAW DATA FROM GOOGLE SHEETS ===");
+    console.log("Total rows:", rows.length);
+    console.log("First row (headers):", rows[0]);
+    console.log("Sample data rows:", rows.slice(1, 4)); // Show first 3 data rows
+    console.log("Last row:", rows[rows.length - 1]);
+    console.log("================================");
+
+    // Skip header row and process data
+    const records: SalesRecord[] = rows.slice(1).map((row) => ({
+      mes: row[0] || "",
+      cliente: row[1] || "",
+      vendedor: row[2] || "",
+      sucursal: row[3] || "",
+      monto_negocio: parseFloat(row[4]) || 0, // Columna H (índice 7)
+    }));
+
+    // Log processed records
+    console.log("=== PROCESSED RECORDS ===");
+    console.log("Total records:", records.length);
+    console.log("Sample records:", records.slice(0, 3));
+    console.log("Column mapping:");
+    console.log(
+      "- mes (row[0]):",
+      records.slice(0, 3).map((r) => r.mes)
+    );
+    console.log(
+      "- vendedor (row[2]):",
+      records.slice(0, 3).map((r) => r.vendedor)
+    );
+    console.log(
+      "- cliente (row[1]):",
+      records.slice(0, 3).map((r) => r.cliente)
+    );
+    console.log(
+      "- monto_negocio (row[4]):",
+      records.slice(0, 3).map((r) => r.monto_negocio)
+    );
+    console.log("================================");
+
+    // Group by vendor and calculate totals
+    const vendorMap = new Map<string, VendorSales>();
+
+    records.forEach((record) => {
+      if (!vendorMap.has(record.vendedor)) {
+        vendorMap.set(record.vendedor, {
+          vendedor: record.vendedor,
+          totalSales: 0,
+          totalAmount: 0,
+          salesCount: 0,
+          averageAmount: 0,
+        });
+      }
+
+      const vendor = vendorMap.get(record.vendedor)!;
+      vendor.totalSales += 1; // Count each record as 1 sale
+      vendor.totalAmount += record.monto_negocio;
+      vendor.salesCount += 1;
+    });
+
+    // Calculate averages
+    vendorMap.forEach((vendor) => {
+      vendor.averageAmount = vendor.totalAmount / vendor.salesCount;
+    });
+
+    const vendors = Array.from(vendorMap.values()).sort(
+      (a, b) => b.totalAmount - a.totalAmount
+    );
+
+    // Group by month and calculate totals
+    const monthlyMap = new Map<string, MonthlySales>();
+
+    records.forEach((record) => {
+      if (!monthlyMap.has(record.mes)) {
+        monthlyMap.set(record.mes, {
+          mes: record.mes,
+          totalAmount: 0,
+          salesCount: 0,
+        });
+      }
+
+      const month = monthlyMap.get(record.mes)!;
+      month.totalAmount += record.monto_negocio;
+      month.salesCount += 1;
+    });
+
+    const monthlySales = Array.from(monthlyMap.values()).sort((a, b) => {
+      const monthOrder = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+      return monthOrder.indexOf(a.mes) - monthOrder.indexOf(b.mes);
+    });
+
+    const totalSales = records.length; // Total number of sales records
+    const totalAmount = records.reduce(
+      (sum, record) => sum + record.monto_negocio,
+      0
+    );
+
+    // Log final processed data
+    console.log("=== FINAL PROCESSED DATA ===");
+    console.log(
+      "Vendors found:",
+      vendors.map((v) => v.vendedor)
+    );
+    console.log(
+      "Months found:",
+      monthlySales.map((m) => m.mes)
+    );
+    console.log("Total sales:", totalSales);
+    console.log("Total amount:", totalAmount);
+    console.log("================================");
+
+    return {
+      records,
+      vendors,
+      monthlySales,
+      totalSales,
+      totalAmount,
+    };
+  } catch (error) {
+    console.error("Error fetching sales data:", error);
+    throw error;
+  }
+}
