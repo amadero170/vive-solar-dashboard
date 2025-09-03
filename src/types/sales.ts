@@ -26,4 +26,5 @@ export interface SalesData {
   monthlySales: MonthlySales[];
   totalSales: number;
   totalAmount: number;
+  sucursalData: Record<string, number>;
 }

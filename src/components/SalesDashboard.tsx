@@ -48,6 +48,30 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
     return new Intl.NumberFormat("es-MX").format(num);
   };
 
+  // Normalize month label to Spanish month name
+  const getMonthName = (mes: string) => {
+    const months = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+    const numeric = parseInt(mes, 10);
+    if (!Number.isNaN(numeric) && numeric >= 1 && numeric <= 12) {
+      return months[numeric - 1];
+    }
+    const idx = months.findIndex((m) => m.toLowerCase() === mes.toLowerCase());
+    return idx >= 0 ? months[idx] : mes;
+  };
+
   // Filter data based on selected branch
   const getFilteredData = () => {
     if (!data || selectedSucursal === "Todas") {
@@ -199,7 +223,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
             >
               <option value="Todas">Todas las Sucursales</option>
               <option value="Guadalajara">Guadalajara</option>
-              <option value="Vallarta">Vallarta</option>
+              <option value="Puerto Vallarta">Vallarta</option>
               <option value="Querétaro">Querétaro</option>
             </select>
           </div>
@@ -297,48 +321,131 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
               Ventas Mensuales 2025{" "}
               {selectedSucursal !== "Todas" && `- ${selectedSucursal}`}
             </h3>
-            <div className="flex items-end justify-between h-64 px-4 pb-8">
-              {filteredData.monthlySales.map((month) => {
-                const percentage =
-                  (month.totalAmount / (filteredData.totalAmount || 1)) * 100;
-                const maxHeight = 200; // Maximum height in pixels
-                const barHeight =
-                  (month.totalAmount / (filteredData.totalAmount || 1)) *
-                  maxHeight;
+            <div className="relative">
+              {(() => {
+                // Calculate the maximum amount once and use it consistently
+                // Determine current monthly meta: for "Todas" try explicit meta, otherwise sum of branches
+                const currentMeta: number | undefined = (() => {
+                  if (!data?.sucursalData) return undefined;
+                  if (selectedSucursal === "Todas") {
+                    const explicitAll = data.sucursalData["Todas"];
+                    if (typeof explicitAll === "number" && explicitAll > 0) {
+                      return explicitAll;
+                    }
+                    return Object.entries(data.sucursalData)
+                      .filter(([key]) => key !== "Todas")
+                      .reduce(
+                        (sum, [, value]) => sum + (Number(value) || 0),
+                        0
+                      );
+                  }
+                  return data.sucursalData[selectedSucursal];
+                })();
+
+                const maxAmount = Math.max(
+                  ...filteredData.monthlySales.map((m) => m.totalAmount),
+                  currentMeta ?? 0
+                );
+                const steps = 10;
+                const stepAmount = maxAmount / steps;
+                const chartHeight = 200; // Chart height in pixels
 
                 return (
-                  <div
-                    key={month.mes}
-                    className="flex flex-col items-center flex-1"
-                  >
-                    {/* Bar */}
-                    <div className="relative w-full max-w-16 mx-1 group">
-                      <div
-                        className="bg-gradient-to-t from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 rounded-t-lg min-h-4 shadow-sm"
-                        style={{ height: `${Math.max(barHeight, 20)}px` }}
-                      ></div>
+                  <>
+                    {/* Y-axis labels and grid lines */}
+                    <div className="absolute left-0 top-0 h-64 w-12 flex flex-col justify-between text-xs text-gray-500">
+                      {Array.from({ length: steps + 1 }, (_, i) => {
+                        const value = maxAmount - i * stepAmount;
+                        return (
+                          <div
+                            key={i}
+                            className="flex items-center justify-end pr-2 relative"
+                            style={{ height: `${chartHeight / steps}px` }}
+                          >
+                            {formatCurrency(value)}
+                            {/* Grid line */}
+                            <div className="absolute right-0 top-0 w-full border-t border-gray-200 opacity-30"></div>
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                      {/* Tooltip on hover */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                        <div className="font-semibold">
-                          {formatCurrency(month.totalAmount)}
+                    {/* Chart area with bars and meta line */}
+                    <div className="relative ml-12 h-64">
+                      {/* Meta line - rendered first so it's behind bars */}
+                      {typeof currentMeta === "number" && currentMeta > 0 && (
+                        <div
+                          className="absolute w-full border-t-2 border-dashed border-red-500 opacity-70 pointer-events-none"
+                          style={{
+                            bottom: `${
+                              (currentMeta / maxAmount) * chartHeight
+                            }px`,
+                          }}
+                        >
+                          <div className="absolute -top-6 left-0 text-xs text-red-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
+                            Meta: {formatCurrency(currentMeta)}
+                          </div>
                         </div>
-                        <div>{month.salesCount} ventas</div>
+                      )}
+
+                      {/* Bars */}
+                      <div className="flex items-end justify-between h-64 px-4">
+                        {filteredData.monthlySales.map((month) => {
+                          const barHeight =
+                            (month.totalAmount / maxAmount) * chartHeight;
+
+                          return (
+                            <div
+                              key={month.mes}
+                              className="flex flex-col items-center flex-1"
+                            >
+                              {/* Bar */}
+                              <div className="relative w-full max-w-16 mx-1 group">
+                                <div
+                                  className="bg-gradient-to-t from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 rounded-t-lg shadow-sm"
+                                  style={{
+                                    height: `${Math.max(barHeight, 2)}px`,
+                                  }}
+                                ></div>
+
+                                {/* Tooltip on hover */}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                                  <div className="font-semibold">
+                                    {formatCurrency(month.totalAmount)}
+                                  </div>
+                                  <div>{month.salesCount} ventas</div>
+                                  {typeof currentMeta === "number" &&
+                                    currentMeta > 0 && (
+                                      <div className="text-red-300">
+                                        Meta: {formatCurrency(currentMeta)}
+                                      </div>
+                                    )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    {/* Month name */}
-                    <div className="mt-3 text-xs font-medium text-gray-600 text-center">
-                      {month.mes}
+                    {/* X-axis labels below chart area to avoid lifting bars */}
+                    <div className="flex justify-between px-4 ml-12 mt-2">
+                      {filteredData.monthlySales.map((month) => (
+                        <div
+                          key={`label-${month.mes}`}
+                          className="flex-1 flex flex-col items-center"
+                        >
+                          <div className="text-xs font-medium text-gray-600 text-center">
+                            {getMonthName(month.mes)}
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500 text-center">
+                            {formatCurrency(month.totalAmount)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Amount below bar */}
-                    <div className="mt-1 text-xs text-gray-500 text-center">
-                      {formatCurrency(month.totalAmount)}
-                    </div>
-                  </div>
+                  </>
                 );
-              })}
+              })()}
             </div>
 
             {/* Chart legend */}
@@ -348,6 +455,16 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                   <div className="w-4 h-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded mr-2"></div>
                   <span>Monto de Ventas</span>
                 </div>
+                {selectedSucursal !== "Todas" &&
+                  data?.sucursalData[selectedSucursal] && (
+                    <>
+                      <div className="text-gray-400">|</div>
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-t-2 border-dashed border-red-500 mr-2"></div>
+                        <span>Meta Mensual</span>
+                      </div>
+                    </>
+                  )}
                 <div className="text-gray-400">|</div>
                 <div className="text-gray-500">
                   Total: {formatCurrency(filteredData.totalAmount)}
@@ -382,6 +499,9 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Promedio por Venta
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Promedio Venta Mensual
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -408,6 +528,21 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {formatCurrency(vendor.averageAmount)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {(() => {
+                            const monthsWithSales =
+                              new Set(
+                                filteredData.records
+                                  .filter((r) => r.vendedor === vendor.vendedor)
+                                  .map((r) => r.mes)
+                              ).size || 1;
+                            const monthlyAverage =
+                              vendor.totalAmount / monthsWithSales;
+                            return formatCurrency(monthlyAverage);
+                          })()}
                         </div>
                       </td>
                     </tr>

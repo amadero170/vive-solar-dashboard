@@ -29,10 +29,10 @@ export async function getSalesData(): Promise<SalesData> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
 
-    // Read from "Reporte Ventas 2025" sheet, columns A to S
+    // Read from "ventas" sheet, columns A to F
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "ventas!A:E",
+      range: "ventas!A:F",
     });
 
     const rows = response.data.values;
@@ -50,11 +50,11 @@ export async function getSalesData(): Promise<SalesData> {
 
     // Skip header row and process data
     const records: SalesRecord[] = rows.slice(1).map((row) => ({
-      mes: row[0] || "",
-      cliente: row[1] || "",
-      vendedor: row[2] || "",
-      sucursal: row[3] || "",
-      monto_negocio: parseFloat(row[4]) || 0, // Columna H (índice 7)
+      mes: row[1] || "", // Column B - Mes
+      cliente: row[2] || "", // Column C - Cliente
+      vendedor: row[3] || "", // Column D - Asesor
+      sucursal: row[4] || "", // Column E - Sucursal
+      monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
     }));
 
     // Log processed records
@@ -63,19 +63,23 @@ export async function getSalesData(): Promise<SalesData> {
     console.log("Sample records:", records.slice(0, 3));
     console.log("Column mapping:");
     console.log(
-      "- mes (row[0]):",
+      "- mes (row[1]):",
       records.slice(0, 3).map((r) => r.mes)
     );
     console.log(
-      "- vendedor (row[2]):",
+      "- vendedor (row[3]):",
       records.slice(0, 3).map((r) => r.vendedor)
     );
     console.log(
-      "- cliente (row[1]):",
+      "- cliente (row[2]):",
       records.slice(0, 3).map((r) => r.cliente)
     );
     console.log(
-      "- monto_negocio (row[4]):",
+      "- sucursal (row[4]):",
+      records.slice(0, 3).map((r) => r.sucursal)
+    );
+    console.log(
+      "- monto_negocio (row[5]):",
       records.slice(0, 3).map((r) => r.monto_negocio)
     );
     console.log("================================");
@@ -170,9 +174,48 @@ export async function getSalesData(): Promise<SalesData> {
       monthlySales,
       totalSales,
       totalAmount,
+      sucursalData: {},
     };
   } catch (error) {
     console.error("Error fetching sales data:", error);
     throw error;
+  }
+}
+
+export async function getSucursalData(): Promise<Map<string, number>> {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    // Read from "Metas" sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheet_id,
+      range: "Metas!A:B",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      throw new Error("No data found in Metas sheet");
+    }
+
+    // Skip header row and process data
+    const sucursalMap = new Map<string, number>();
+
+    rows.slice(1).forEach((row) => {
+      const sucursal = row[0] || ""; // Column A - Sucursal
+      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
+
+      if (sucursal && metaMensual > 0) {
+        sucursalMap.set(sucursal, metaMensual);
+      }
+    });
+
+    console.log("=== METAS DATA ===");
+    console.log("Branch targets:", Object.fromEntries(sucursalMap));
+    console.log("================================");
+
+    return sucursalMap;
+  } catch (error) {
+    console.error("Error fetching metas data:", error);
+    return new Map();
   }
 }
