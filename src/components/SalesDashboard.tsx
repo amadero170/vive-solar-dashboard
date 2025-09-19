@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { SalesData } from "@/types/sales";
 
 interface SalesDashboardProps {
@@ -22,7 +23,12 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/sales");
+      const response = await fetch("/api/sales", {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch sales data");
       }
@@ -46,6 +52,64 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat("es-MX").format(num);
+  };
+
+  // Calculate rounded step values for charts
+  const calculateRoundedSteps = (maxValue: number) => {
+    if (maxValue <= 0) return { stepAmount: 0, steps: 0 };
+
+    // Find appropriate step size based on the magnitude of the value
+    let stepAmount: number;
+    let steps: number;
+
+    if (maxValue >= 10000000) {
+      // For values >= 10M, use 1M, 2M, 5M steps
+      if (maxValue <= 20000000) {
+        stepAmount = 2000000; // 2M steps
+      } else if (maxValue <= 50000000) {
+        stepAmount = 5000000; // 5M steps
+      } else {
+        stepAmount = 10000000; // 10M steps
+      }
+    } else if (maxValue >= 1000000) {
+      // For values >= 1M, use 100K, 200K, 500K, 1M steps
+      if (maxValue <= 2000000) {
+        stepAmount = 200000; // 200K steps
+      } else if (maxValue <= 5000000) {
+        stepAmount = 500000; // 500K steps
+      } else {
+        stepAmount = 1000000; // 1M steps
+      }
+    } else if (maxValue >= 100000) {
+      // For values >= 100K, use 10K, 20K, 50K, 100K steps
+      if (maxValue <= 200000) {
+        stepAmount = 20000; // 20K steps
+      } else if (maxValue <= 500000) {
+        stepAmount = 50000; // 50K steps
+      } else {
+        stepAmount = 100000; // 100K steps
+      }
+    } else if (maxValue >= 10000) {
+      // For values >= 10K, use 1K, 2K, 5K, 10K steps
+      if (maxValue <= 20000) {
+        stepAmount = 2000; // 2K steps
+      } else if (maxValue <= 50000) {
+        stepAmount = 5000; // 5K steps
+      } else {
+        stepAmount = 10000; // 10K steps
+      }
+    } else {
+      // For smaller values, use 1K steps
+      stepAmount = 1000; // 1K steps
+    }
+
+    // Calculate number of steps needed
+    steps = Math.ceil(maxValue / stepAmount);
+
+    // Round up the max value to the nearest step
+    const roundedMax = Math.ceil(maxValue / stepAmount) * stepAmount;
+
+    return { stepAmount, steps, roundedMax };
   };
 
   // Normalize month label to Spanish month name
@@ -195,8 +259,13 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full mr-3"></div>
-              <h1 className="text-2xl font-bold text-gray-900">vivesolar.</h1>
+              <Image
+                src="/logo.png"
+                alt="ViveSolar Logo"
+                width={200}
+                height={200}
+                className="mr-3"
+              />
             </div>
             <div className="text-sm text-gray-600">
               Dashboard de Ventas 2025
@@ -342,25 +411,35 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                   return data.sucursalData[selectedSucursal];
                 })();
 
-                const maxAmount = Math.max(
+                const rawMaxAmount = Math.max(
                   ...filteredData.monthlySales.map((m) => m.totalAmount),
                   currentMeta ?? 0
                 );
-                const steps = 10;
-                const stepAmount = maxAmount / steps;
+                const { stepAmount, steps, roundedMax } =
+                  calculateRoundedSteps(rawMaxAmount);
+                const maxAmount = roundedMax;
                 const chartHeight = 200; // Chart height in pixels
+
+                if (!maxAmount || !stepAmount || !steps) {
+                  return null;
+                }
+
+                // TypeScript assertion - we know these are defined after the check above
+                const safeMaxAmount = maxAmount as number;
+                const safeStepAmount = stepAmount as number;
+                const safeSteps = steps as number;
 
                 return (
                   <>
                     {/* Y-axis labels and grid lines */}
                     <div className="absolute left-0 top-0 h-64 w-12 flex flex-col justify-between text-xs text-gray-500">
-                      {Array.from({ length: steps + 1 }, (_, i) => {
-                        const value = maxAmount - i * stepAmount;
+                      {Array.from({ length: safeSteps + 1 }, (_, i) => {
+                        const value = safeMaxAmount - i * safeStepAmount;
                         return (
                           <div
                             key={i}
                             className="flex items-center justify-end pr-2 relative"
-                            style={{ height: `${chartHeight / steps}px` }}
+                            style={{ height: `${chartHeight / safeSteps}px` }}
                           >
                             {formatCurrency(value)}
                             {/* Grid line */}
@@ -373,26 +452,30 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
                     {/* Chart area with bars and meta line */}
                     <div className="relative ml-12 h-64">
                       {/* Meta line - rendered first so it's behind bars */}
-                      {typeof currentMeta === "number" && currentMeta > 0 && (
-                        <div
-                          className="absolute w-full border-t-2 border-dashed border-red-500 opacity-70 pointer-events-none"
-                          style={{
-                            bottom: `${
-                              (currentMeta / maxAmount) * chartHeight
-                            }px`,
-                          }}
-                        >
-                          <div className="absolute -top-6 left-0 text-xs text-red-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
-                            Meta: {formatCurrency(currentMeta)}
+                      {typeof currentMeta === "number" &&
+                        currentMeta > 0 &&
+                        currentMeta <= safeMaxAmount && (
+                          <div
+                            className="absolute w-full border-t-2 border-dashed border-red-500 opacity-70 pointer-events-none"
+                            style={{
+                              bottom: `${
+                                ((safeMaxAmount - currentMeta) /
+                                  safeMaxAmount) *
+                                chartHeight
+                              }px`,
+                            }}
+                          >
+                            <div className="absolute -top-6 left-0 text-xs text-red-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
+                              Meta: {formatCurrency(currentMeta)}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Bars */}
                       <div className="flex items-end justify-between h-64 px-4">
                         {filteredData.monthlySales.map((month) => {
                           const barHeight =
-                            (month.totalAmount / maxAmount) * chartHeight;
+                            (month.totalAmount / safeMaxAmount) * chartHeight;
 
                           return (
                             <div

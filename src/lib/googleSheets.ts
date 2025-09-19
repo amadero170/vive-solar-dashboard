@@ -175,6 +175,7 @@ export async function getSalesData(): Promise<SalesData> {
       totalSales,
       totalAmount,
       sucursalData: {},
+      vendorData: {},
     };
   } catch (error) {
     console.error("Error fetching sales data:", error);
@@ -216,6 +217,45 @@ export async function getSucursalData(): Promise<Map<string, number>> {
     return sucursalMap;
   } catch (error) {
     console.error("Error fetching metas data:", error);
+    return new Map();
+  }
+}
+
+export async function getVendorData(): Promise<Map<string, number>> {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    // Read from "Colaboradores" sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheet_id,
+      range: "Colaboradores!A:B",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      console.log("No data found in Colaboradores sheet");
+      return new Map();
+    }
+
+    // Skip header row and process data
+    const vendorMap = new Map<string, number>();
+
+    rows.slice(1).forEach((row) => {
+      const vendedor = row[0] || ""; // Column A - Vendedor/Colaborador
+      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
+
+      if (vendedor && metaMensual > 0) {
+        vendorMap.set(vendedor, metaMensual);
+      }
+    });
+
+    console.log("=== VENDOR METAS DATA ===");
+    console.log("Vendor targets:", Object.fromEntries(vendorMap));
+    console.log("================================");
+
+    return vendorMap;
+  } catch (error) {
+    console.error("Error fetching vendor metas data:", error);
     return new Map();
   }
 }
