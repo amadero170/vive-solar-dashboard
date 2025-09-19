@@ -28,4 +28,6 @@ export interface SalesData {
   totalAmount: number;
   sucursalData: Record<string, number>;
   vendorData: Record<string, number>;
+  timestamp?: string;
+  cacheId?: string;
 }

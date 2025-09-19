@@ -25,6 +25,38 @@ const auth = new google.auth.GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
 });
 
+// Function to normalize vendor names for consistency
+function normalizeVendorName(name: string): string {
+  if (!name) return "";
+
+  // Trim and normalize basic formatting
+  let normalized = name.trim().replace(/\s+/g, " ");
+
+  // Specific mappings for known variations (case-insensitive)
+  const nameMap: Record<string, string> = {
+    "daniel ortiz": "Daniel Ortíz",
+    "DANIEL ORTIZ": "Daniel Ortíz",
+    "Daniel Ortiz": "Daniel Ortíz",
+    "daniel ortíz": "Daniel Ortíz",
+    "DANIEL ORTÍZ": "Daniel Ortíz",
+    // Add more mappings as needed
+  };
+
+  // Check for exact matches first (case-insensitive)
+  const lowerName = normalized.toLowerCase();
+  for (const [key, value] of Object.entries(nameMap)) {
+    if (key.toLowerCase() === lowerName) {
+      return value;
+    }
+  }
+
+  // If no exact match, return the name with proper capitalization
+  return normalized
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export async function getSalesData(): Promise<SalesData> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
@@ -46,16 +78,29 @@ export async function getSalesData(): Promise<SalesData> {
     console.log("First row (headers):", rows[0]);
     console.log("Sample data rows:", rows.slice(1, 4)); // Show first 3 data rows
     console.log("Last row:", rows[rows.length - 1]);
+
     console.log("================================");
 
     // Skip header row and process data
-    const records: SalesRecord[] = rows.slice(1).map((row) => ({
-      mes: row[1] || "", // Column B - Mes
-      cliente: row[2] || "", // Column C - Cliente
-      vendedor: row[3] || "", // Column D - Asesor
-      sucursal: row[4] || "", // Column E - Sucursal
-      monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
-    }));
+    const records: SalesRecord[] = rows.slice(1).map((row) => {
+      const originalVendedor = row[3] || "";
+      const normalizedVendedor = normalizeVendorName(originalVendedor);
+
+      // Log when normalization changes a name
+      if (originalVendedor !== normalizedVendedor) {
+        console.log(
+          `Normalized vendor: "${originalVendedor}" -> "${normalizedVendedor}"`
+        );
+      }
+
+      return {
+        mes: row[1] || "", // Column B - Mes
+        cliente: row[2] || "", // Column C - Cliente
+        vendedor: normalizedVendedor, // Column D - Asesor (normalized)
+        sucursal: row[4] || "", // Column E - Sucursal
+        monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
+      };
+    });
 
     // Log processed records
     console.log("=== PROCESSED RECORDS ===");
@@ -228,7 +273,7 @@ export async function getVendorData(): Promise<Map<string, number>> {
     // Read from "Colaboradores" sheet
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "Colaboradores!A:B",
+      range: "Colaboradores!A:E",
     });
 
     const rows = response.data.values;
@@ -241,11 +286,19 @@ export async function getVendorData(): Promise<Map<string, number>> {
     const vendorMap = new Map<string, number>();
 
     rows.slice(1).forEach((row) => {
-      const vendedor = row[0] || ""; // Column A - Vendedor/Colaborador
-      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
+      const originalVendedor = row[0] || ""; // Column A - Vendedor/Colaborador
+      const normalizedVendedor = normalizeVendorName(originalVendedor);
+      const metaMensual = parseFloat(row[4]) || 0; // Column E - Meta mensual
 
-      if (vendedor && metaMensual > 0) {
-        vendorMap.set(vendedor, metaMensual);
+      // Log when normalization changes a name
+      if (originalVendedor !== normalizedVendedor) {
+        console.log(
+          `Normalized vendor goal: "${originalVendedor}" -> "${normalizedVendedor}"`
+        );
+      }
+
+      if (normalizedVendedor && metaMensual > 0) {
+        vendorMap.set(normalizedVendedor, metaMensual);
       }
     });
 

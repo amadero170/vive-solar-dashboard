@@ -10,8 +10,14 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Force fresh data on every request
+    const url = new URL(request.url);
+    const timestamp = new Date().toISOString();
+
+    console.log(`=== API CALL ${timestamp} ===`);
+
     const [salesData, sucursalData, vendorData] = await Promise.all([
       getSalesData(),
       getSucursalData(),
@@ -29,24 +35,39 @@ export async function GET() {
       sucursalCount: sucursalData.size,
       vendorCount: vendorData.size,
     });
-    console.log("================================");
 
-    const res = NextResponse.json(
-      {
-        ...salesData,
-        sucursalData: Object.fromEntries(sucursalData),
-        vendorData: Object.fromEntries(vendorData),
-      },
-      { status: 200 }
+    // Log specific vendor names to check for cached data
+    const uniqueVendors = [
+      ...new Set(salesData.records.map((r) => r.vendedor)),
+    ];
+    console.log("Unique vendors in sales data:", uniqueVendors);
+    console.log(
+      "Vendor goals available for:",
+      Object.keys(Object.fromEntries(vendorData))
     );
 
-    // Explicitly disable caching at the edge and browser
+    console.log("================================");
+
+    const responseData = {
+      ...salesData,
+      sucursalData: Object.fromEntries(sucursalData),
+      vendorData: Object.fromEntries(vendorData),
+      timestamp: new Date().toISOString(),
+      cacheId: Math.random().toString(36).substring(7),
+    };
+
+    const res = NextResponse.json(responseData, { status: 200 });
+
+    // Extremely aggressive cache disabling
     res.headers.set(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, max-age=0"
+      "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0"
     );
     res.headers.set("Pragma", "no-cache");
     res.headers.set("Expires", "0");
+    res.headers.set("Surrogate-Control", "no-store");
+    res.headers.set("Vary", "*");
+    res.headers.set("Last-Modified", new Date().toUTCString());
 
     return res;
   } catch (error) {

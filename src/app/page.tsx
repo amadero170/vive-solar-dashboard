@@ -18,15 +18,47 @@ export default function Home() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/sales", {
-        cache: "no-store",
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      });
+
+      // Clear any existing data first
+      setData(null);
+
+      // Ultra aggressive cache busting
+      const timestamp = new Date().getTime();
+      const randomId = Math.random().toString(36).substring(7);
+      const sessionId = Math.random().toString(36).substring(7);
+
+      // Clear browser cache to ensure fresh data
+      if ("caches" in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map((cacheName) => caches.delete(cacheName))
+          );
+        } catch (e) {
+          // Cache clearing failed, but continue anyway
+        }
+      }
+
+      const response = await fetch(
+        `/api/sales?v=2&t=${timestamp}&r=${randomId}&s=${sessionId}&nocache=true`,
+        {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            "Cache-Control":
+              "no-store, no-cache, must-revalidate, max-age=0, s-maxage=0",
+            Pragma: "no-cache",
+            Expires: "0",
+            "If-None-Match": "*",
+            "If-Modified-Since": "Thu, 01 Jan 1970 00:00:00 GMT",
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Failed to fetch sales data");
       }
+
       const salesData = await response.json();
       setData(salesData);
     } catch (err) {
@@ -120,8 +152,30 @@ export default function Home() {
                 className="mr-3"
               />
             </div>
-            <div className="text-sm text-gray-600">
-              Dashboard de Ventas 2025
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Dashboard de Ventas 2025
+              </div>
+              <button
+                onClick={fetchData}
+                disabled={loading}
+                className="flex items-center px-3 py-1 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg
+                  className={`w-4 h-4 mr-1 ${loading ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                {loading ? "Actualizando..." : "Actualizar"}
+              </button>
             </div>
           </div>
         </div>
@@ -217,6 +271,14 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Show last update time */}
+        {(data as any)?.timestamp && (
+          <div className="mb-4 text-center text-sm text-gray-500">
+            Última actualización:{" "}
+            {new Date((data as any).timestamp).toLocaleString("es-MX")}
+          </div>
+        )}
 
         <MonthlySalesChart data={data} />
 

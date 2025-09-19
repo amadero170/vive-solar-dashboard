@@ -60,7 +60,6 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
 
     // Find appropriate step size based on the magnitude of the value
     let stepAmount: number;
-    let steps: number;
 
     if (maxValue >= 10000000) {
       // For values >= 10M, use 1M, 2M, 5M steps
@@ -104,7 +103,7 @@ export default function SalesDashboard({ initialData }: SalesDashboardProps) {
     }
 
     // Calculate number of steps needed
-    steps = Math.ceil(maxValue / stepAmount);
+    const steps = Math.ceil(maxValue / stepAmount);
 
     // Round up the max value to the nearest step
     const roundedMax = Math.ceil(maxValue / stepAmount) * stepAmount;
