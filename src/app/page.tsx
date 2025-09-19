@@ -34,7 +34,7 @@ export default function Home() {
           await Promise.all(
             cacheNames.map((cacheName) => caches.delete(cacheName))
           );
-        } catch (e) {
+        } catch {
           // Cache clearing failed, but continue anyway
         }
       }
@@ -273,10 +273,10 @@ export default function Home() {
         </div>
 
         {/* Show last update time */}
-        {(data as any)?.timestamp && (
+        {data?.timestamp && (
           <div className="mb-4 text-center text-sm text-gray-500">
             Última actualización:{" "}
-            {new Date((data as any).timestamp).toLocaleString("es-MX")}
+            {new Date(data.timestamp).toLocaleString("es-MX")}
           </div>
         )}
 

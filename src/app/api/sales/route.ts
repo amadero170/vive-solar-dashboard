@@ -13,7 +13,6 @@ export const fetchCache = "force-no-store";
 export async function GET(request: Request) {
   try {
     // Force fresh data on every request
-    const url = new URL(request.url);
     const timestamp = new Date().toISOString();
 
     console.log(`=== API CALL ${timestamp} ===`);

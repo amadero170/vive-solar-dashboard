@@ -30,7 +30,7 @@ function normalizeVendorName(name: string): string {
   if (!name) return "";
 
   // Trim and normalize basic formatting
-  let normalized = name.trim().replace(/\s+/g, " ");
+  const normalized = name.trim().replace(/\s+/g, " ");
 
   // Specific mappings for known variations (case-insensitive)
   const nameMap: Record<string, string> = {
