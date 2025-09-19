@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -34,6 +34,18 @@ export default function MonthlySalesBySellerChart({
   data,
 }: MonthlySalesBySellerChartProps) {
   const [selectedSeller, setSelectedSeller] = useState<string>("Todos");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint in Tailwind
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-MX", {
@@ -149,13 +161,48 @@ export default function MonthlySalesBySellerChart({
 
   const currentSellerMeta = getCurrentSellerMeta();
 
-  // Prepare chart data
-  const chartData =
-    filteredData?.monthlySales.map((month) => ({
-      month: getMonthName(month.mes),
-      sales: month.totalAmount,
-      count: month.salesCount,
-    })) || [];
+  // Generate complete month array from January to current month (dynamic)
+  const generateCompleteMonthData = () => {
+    const allMonths = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+
+    // Get current month (1-12)
+    const currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11, so add 1
+
+    // Get months from January to current month
+    const monthsToShow = allMonths.slice(0, currentMonth);
+
+    // Create map of existing data
+    const existingData = new Map();
+    filteredData?.monthlySales.forEach((month) => {
+      const monthName = getMonthName(month.mes);
+      existingData.set(monthName, {
+        sales: month.totalAmount,
+        count: month.salesCount,
+      });
+    });
+
+    // Generate complete array with zeros for missing months
+    return monthsToShow.map((monthName) => ({
+      month: monthName,
+      sales: existingData.get(monthName)?.sales || 0,
+      count: existingData.get(monthName)?.count || 0,
+    }));
+  };
+
+  const chartData = generateCompleteMonthData();
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
@@ -180,7 +227,7 @@ export default function MonthlySalesBySellerChart({
     return null;
   };
 
-  if (!filteredData || !chartData.length) {
+  if (!chartData.length) {
     return (
       <Card>
         <CardHeader>
@@ -221,15 +268,22 @@ export default function MonthlySalesBySellerChart({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              margin={{ 
+                top: 20, 
+                right: 30, 
+                left: isMobile ? 5 : 20, 
+                bottom: 5 
+              }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#666" />
-              <YAxis
-                tick={{ fontSize: 12 }}
-                stroke="#666"
-                tickFormatter={(value) => formatCurrency(value)}
-              />
+              {!isMobile && (
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  stroke="#666"
+                  tickFormatter={(value) => formatCurrency(value)}
+                />
+              )}
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="sales" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               {currentSellerMeta && (
@@ -267,7 +321,7 @@ export default function MonthlySalesBySellerChart({
             )}
             <div className="text-gray-400">|</div>
             <div className="text-gray-500">
-              Total: {formatCurrency(filteredData.totalAmount)}
+              Total: {formatCurrency(filteredData?.totalAmount || 0)}
             </div>
           </div>
         </div>
