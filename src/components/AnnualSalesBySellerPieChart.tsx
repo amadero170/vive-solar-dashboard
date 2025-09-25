@@ -133,6 +133,7 @@ export default function AnnualSalesBySellerPieChart({
   };
 
   // Custom label function for pie slices
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderLabel = (entry: any) => {
     if (entry.percentage < 5) return ""; // Don't show label if slice is too small
     return `${entry.percentage.toFixed(1)}%`;

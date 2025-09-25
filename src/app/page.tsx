@@ -8,6 +8,7 @@ import AnnualSalesBySellerPieChart from "@/components/AnnualSalesBySellerPieChar
 import CurrentMonthSalesBySellerPieChart from "@/components/CurrentMonthSalesBySellerPieChart";
 import AnnualSalesBySellerBarChart from "@/components/AnnualSalesBySellerBarChart";
 import CurrentMonthSalesBySellerBarChart from "@/components/CurrentMonthSalesBySellerBarChart";
+import MonthlySalesByFuenteChart from "@/components/MonthlySalesByFuenteChart";
 import Image from "next/image";
 
 export default function Home() {
@@ -65,6 +66,7 @@ export default function Home() {
 
       const salesData = await response.json();
       setData(salesData);
+      console.log("salesData ===================================>", salesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -201,23 +203,12 @@ export default function Home() {
       "Diciembre",
     ];
     const currentMonthName = monthNames[currentMonth - 1];
-    console.log(
-      "currentMonthName-------*******************#####################",
-      currentMonthName
-    );
-    console.log(
-      "data.monthlySales-------*******************#####################",
-      data.monthlySales
-    );
+
     // Find current month sales
     const currentMonthData = data.monthlySales.find(
       (month) => month.mes === String(currentMonth)
     );
     const currentMonthSales = currentMonthData?.totalAmount || 0;
-    console.log(
-      "currentMonthSales-------*******************#####################",
-      currentMonthSales
-    );
 
     // Calculate total monthly target for all vendors
     const monthlyTarget = data.sucursalData.Todas;
@@ -461,6 +452,11 @@ export default function Home() {
         </div>
 
         <MonthlySalesBySellerChart data={data} />
+
+        {/* Monthly Sales by Fuente Chart at the bottom */}
+        <div className="my-8">
+          <MonthlySalesByFuenteChart data={data} />
+        </div>
       </div>
     </div>
   );
