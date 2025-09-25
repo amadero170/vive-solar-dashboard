@@ -160,6 +160,7 @@ export default function MonthlySalesByFuenteChart({
 
     // Create chart data structure
     const chartData = monthsToShow.map((month) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const monthData: any = { month };
 
       uniqueFuentes.forEach((fuente) => {
