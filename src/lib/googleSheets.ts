@@ -64,7 +64,7 @@ export async function getSalesData(): Promise<SalesData> {
     // Read from "ventas" sheet, columns A to F
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "ventas!A:F",
+      range: "ventas!A:G",
     });
 
     const rows = response.data.values;
@@ -99,6 +99,7 @@ export async function getSalesData(): Promise<SalesData> {
         vendedor: normalizedVendedor, // Column D - Asesor (normalized)
         sucursal: row[4] || "", // Column E - Sucursal
         monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
+        fuente: row[6] || "", // Column G - Fuente
       };
     });
 
@@ -126,6 +127,10 @@ export async function getSalesData(): Promise<SalesData> {
     console.log(
       "- monto_negocio (row[5]):",
       records.slice(0, 3).map((r) => r.monto_negocio)
+    );
+    console.log(
+      "- fuente (row[6]):",
+      records.slice(0, 3).map((r) => r.fuente)
     );
     console.log("================================");
 
@@ -228,44 +233,6 @@ export async function getSalesData(): Promise<SalesData> {
   }
 }
 
-export async function getSucursalData(): Promise<Map<string, number>> {
-  try {
-    const sheets = google.sheets({ version: "v4", auth });
-
-    // Read from "Metas" sheet
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheet_id,
-      range: "Metas!A:B",
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) {
-      throw new Error("No data found in Metas sheet");
-    }
-
-    // Skip header row and process data
-    const sucursalMap = new Map<string, number>();
-
-    rows.slice(1).forEach((row) => {
-      const sucursal = row[0] || ""; // Column A - Sucursal
-      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
-
-      if (sucursal && metaMensual > 0) {
-        sucursalMap.set(sucursal, metaMensual);
-      }
-    });
-
-    console.log("=== METAS DATA ===");
-    console.log("Branch targets:", Object.fromEntries(sucursalMap));
-    console.log("================================");
-
-    return sucursalMap;
-  } catch (error) {
-    console.error("Error fetching metas data:", error);
-    return new Map();
-  }
-}
-
 export async function getVendorData(): Promise<Map<string, number>> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
@@ -309,6 +276,53 @@ export async function getVendorData(): Promise<Map<string, number>> {
     return vendorMap;
   } catch (error) {
     console.error("Error fetching vendor metas data:", error);
+    return new Map();
+  }
+}
+export async function getSucursalData(): Promise<Map<string, number>> {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    // Read from "Metas" sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheet_id,
+      range: "Metas!A:B",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      throw new Error("No data found in Metas sheet");
+    }
+
+    // Skip header row and process data
+    const sucursalMap = new Map<string, number>();
+
+    rows.slice(1).forEach((row) => {
+      const sucursal = row[0] || ""; // Column A - Sucursal
+      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
+
+      if (sucursal && metaMensual > 0) {
+        sucursalMap.set(sucursal, metaMensual);
+      }
+    });
+
+    // Get the annual goal from the last item in sucursalMap (total monthly goal * 12)
+    const mapEntries = Array.from(sucursalMap.entries());
+    const lastEntry = mapEntries[mapEntries.length - 1];
+    const annualGoal = lastEntry ? lastEntry[1] * 12 : 0;
+
+    console.log("=== METAS DATA ===");
+    console.log("Branch targets:", Object.fromEntries(sucursalMap));
+    console.log(
+      "Total monthly goal (last item):",
+      lastEntry ? lastEntry[1] : 0
+    );
+    console.log("Annual goal (monthly * 12):", annualGoal);
+    console.log("================================");
+
+    return sucursalMap;
+  } catch (error) {
+    console.error("Error fetching metas data:", error);
     return new Map();
   }
 }

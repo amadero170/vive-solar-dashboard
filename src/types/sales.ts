@@ -4,6 +4,7 @@ export interface SalesRecord {
   vendedor: string;
   sucursal: string;
   monto_negocio: number;
+  fuente: string;
 }
 
 export interface VendorSales {

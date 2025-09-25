@@ -137,6 +137,108 @@ export default function Home() {
     return null;
   }
 
+  // Calculate annual progress percentage
+  const getAnnualProgress = () => {
+    if (!data) return { percentage: 0, totalAnnualTarget: 0 };
+
+    const annualTarget = data.sucursalData.Todas * 12;
+
+    if (annualTarget === 0) return { percentage: 0, totalAnnualTarget: 0 };
+
+    // Use total sales to date from API (data.totalAmount)
+    const salesToDate = data.totalAmount;
+
+    const percentage = (salesToDate / annualTarget) * 100;
+
+    // Console log the 3 key values
+    console.log("=== ANNUAL PROGRESS CALCULATION ===");
+    console.log(
+      "Annual Target (Sum of all vendor monthly goals × 12):",
+      annualTarget
+    );
+    console.log("Sales to Date (data.totalAmount from API):", salesToDate);
+    console.log(
+      "Percentage ((Sales to Date ÷ Annual Target) × 100):",
+      percentage
+    );
+    console.log("=======================================");
+
+    return {
+      percentage: Math.min(percentage, 100),
+      totalAnnualTarget: annualTarget,
+      salesToDate,
+    };
+  };
+
+  // Calculate current month progress percentage
+  const getCurrentMonthProgress = () => {
+    if (!data)
+      return {
+        percentage: 0,
+        currentMonth: "",
+        monthlyTarget: 0,
+        currentMonthSales: 0,
+      };
+
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1; // January = 1
+    const monthNames = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+    const currentMonthName = monthNames[currentMonth - 1];
+    console.log(
+      "currentMonthName-------*******************#####################",
+      currentMonthName
+    );
+    console.log(
+      "data.monthlySales-------*******************#####################",
+      data.monthlySales
+    );
+    // Find current month sales
+    const currentMonthData = data.monthlySales.find(
+      (month) => month.mes === String(currentMonth)
+    );
+    const currentMonthSales = currentMonthData?.totalAmount || 0;
+    console.log(
+      "currentMonthSales-------*******************#####################",
+      currentMonthSales
+    );
+
+    // Calculate total monthly target for all vendors
+    const monthlyTarget = data.sucursalData.Todas;
+
+    if (monthlyTarget === 0)
+      return {
+        percentage: 0,
+        currentMonth: currentMonthName,
+        monthlyTarget: 0,
+        currentMonthSales: 0,
+      };
+
+    const percentage = (currentMonthSales / monthlyTarget) * 100;
+
+    return {
+      percentage: Math.min(percentage, 100),
+      currentMonth: currentMonthName,
+      monthlyTarget: monthlyTarget,
+      currentMonthSales,
+    };
+  };
+
+  const annualProgress = getAnnualProgress();
+  const monthlyProgress = getCurrentMonthProgress();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with Vive Solar styling */}
@@ -183,7 +285,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
@@ -266,6 +368,62 @@ export default function Home() {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
                   }).format(data?.totalAmount || 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  Avance Anual
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {annualProgress.percentage.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  Avance {monthlyProgress.currentMonth}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {monthlyProgress.percentage.toFixed(1)}%
                 </p>
               </div>
             </div>
