@@ -43,8 +43,8 @@ export default function MonthlySalesBySellerChart({
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -204,6 +204,34 @@ export default function MonthlySalesBySellerChart({
 
   const chartData = generateCompleteMonthData();
 
+  // Calculate Y-axis domain to ensure meta line is visible
+  const getYAxisDomain = (): [number, number] => {
+    if (!chartData.length) return [0, 1000];
+
+    const maxSales = Math.max(...chartData.map((item) => item.sales));
+    let maxValue = maxSales;
+
+    // If there's a meta and it's higher than max sales, use meta + 10% as max
+    if (currentSellerMeta && currentSellerMeta > maxSales) {
+      maxValue = currentSellerMeta * 1.1; // Add 10% padding above meta
+    } else if (maxSales > 0) {
+      // If max sales is higher than meta, add some padding
+      maxValue = maxSales * 1.1;
+    }
+
+    // Ensure we always show at least the meta value
+    if (currentSellerMeta && maxValue < currentSellerMeta) {
+      maxValue = currentSellerMeta * 1.1;
+    }
+
+    // If maxValue is 0 (no sales and no meta), set a reasonable default
+    if (maxValue === 0) {
+      maxValue = currentSellerMeta || 1000;
+    }
+
+    return [0, Math.ceil(maxValue)];
+  };
+
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
     if (active && payload && payload.length) {
@@ -268,11 +296,11 @@ export default function MonthlySalesBySellerChart({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ 
-                top: 20, 
-                right: 30, 
-                left: isMobile ? 5 : 20, 
-                bottom: 5 
+              margin={{
+                top: 20,
+                right: 30,
+                left: isMobile ? 5 : 20,
+                bottom: 5,
               }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -282,6 +310,7 @@ export default function MonthlySalesBySellerChart({
                   tick={{ fontSize: 12 }}
                   stroke="#666"
                   tickFormatter={(value) => formatCurrency(value)}
+                  domain={getYAxisDomain()}
                 />
               )}
               <Tooltip content={<CustomTooltip />} />
