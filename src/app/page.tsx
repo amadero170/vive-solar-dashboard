@@ -10,6 +10,7 @@ import AnnualSalesBySellerBarChart from "@/components/AnnualSalesBySellerBarChar
 import CurrentMonthSalesBySellerBarChart from "@/components/CurrentMonthSalesBySellerBarChart";
 import MonthlySalesByFuenteChart from "@/components/MonthlySalesByFuenteChart";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   const [data, setData] = useState<SalesData | null>(null);
@@ -89,8 +90,29 @@ export default function Home() {
                   className="mr-3"
                 />
               </div>
-              <div className="text-sm text-gray-600">
-                Dashboard de Ventas 2025
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-600">
+                  Dashboard de Ventas 2025
+                </div>
+                <Link
+                  href="/forms"
+                  className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Formularios
+                </Link>
               </div>
             </div>
           </div>
@@ -117,8 +139,29 @@ export default function Home() {
                   className="mr-3"
                 />
               </div>
-              <div className="text-sm text-gray-600">
-                Dashboard de Ventas 2025
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-600">
+                  Dashboard de Ventas 2025
+                </div>
+                <Link
+                  href="/forms"
+                  className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Formularios
+                </Link>
               </div>
             </div>
           </div>
@@ -253,6 +296,25 @@ export default function Home() {
               <div className="text-sm text-gray-600">
                 Dashboard de Ventas 2025
               </div>
+              <Link
+                href="/forms"
+                className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Formularios
+              </Link>
               <button
                 onClick={fetchData}
                 disabled={loading}
