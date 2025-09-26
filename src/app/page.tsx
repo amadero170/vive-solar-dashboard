@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { SalesData } from "@/types/sales";
 import MonthlySalesChart from "@/components/MonthlySalesChart";
 import MonthlySalesBySellerChart from "@/components/MonthlySalesBySellerChart";
-import AnnualSalesBySellerPieChart from "@/components/AnnualSalesBySellerPieChart";
-import CurrentMonthSalesBySellerPieChart from "@/components/CurrentMonthSalesBySellerPieChart";
 import AnnualSalesBySellerBarChart from "@/components/AnnualSalesBySellerBarChart";
 import CurrentMonthSalesBySellerBarChart from "@/components/CurrentMonthSalesBySellerBarChart";
 import MonthlySalesByFuenteChart from "@/components/MonthlySalesByFuenteChart";
@@ -496,14 +494,6 @@ export default function Home() {
         )}
 
         <MonthlySalesChart data={data} />
-
-        {/* Pie Charts Row - Side by Side on Desktop */}
-        <div className="mb-8 hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <AnnualSalesBySellerPieChart data={data} />
-            <CurrentMonthSalesBySellerPieChart data={data} />
-          </div>
-        </div>
 
         {/* Bar Charts Row - Side by Side on Desktop */}
         <div className="my-8">

@@ -80,7 +80,7 @@ export default function CurrentMonthSalesBySellerBarChart({
   const getCurrentMonthSalesData = () => {
     if (!data) return [];
 
-    const currentMonth = new Date().getMonth(); // 0-11
+    const currentMonth = new Date().getMonth() + 1; // 1-12
     // Get sellers with sales in current month
     const sellerMap = new Map();
 
