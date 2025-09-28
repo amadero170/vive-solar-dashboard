@@ -363,7 +363,7 @@ export default function Home() {
                   Total Vendedores
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {data?.vendors.length || 0}
+                  {Object.keys(data?.vendorData || {}).length || 0}
                 </p>
               </div>
             </div>

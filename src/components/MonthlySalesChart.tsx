@@ -41,8 +41,8 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
     };
 
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -83,9 +83,15 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
       return data;
     }
 
-    const filteredRecords = data.records.filter(
-      (record) => record.sucursal === selectedSucursal
-    );
+    const filteredRecords = data.records.filter((record) => {
+      // Handle accent variations for Querétaro
+      if (selectedSucursal === "Querétaro") {
+        return (
+          record.sucursal === "Querétaro" || record.sucursal === "Queretaro"
+        );
+      }
+      return record.sucursal === selectedSucursal;
+    });
 
     // Recalculate monthly sales based on filtered records
     const monthlyMap = new Map();
@@ -151,7 +157,13 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
         .reduce((sum, [, value]) => sum + (Number(value) || 0), 0);
     }
 
-    return data.sucursalData[selectedSucursal];
+    // Handle accent variations for Querétaro
+    let metaValue = data.sucursalData[selectedSucursal];
+    if (!metaValue && selectedSucursal === "Querétaro") {
+      metaValue = data.sucursalData["Queretaro"];
+    }
+
+    return metaValue;
   };
 
   const currentMeta = getCurrentMeta();
@@ -198,6 +210,20 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
   };
 
   const chartData = generateCompleteMonthData();
+
+  // Calculate Y-axis domain to ensure meta line is always visible
+  const calculateYAxisDomain = () => {
+    const maxSalesValue = Math.max(...chartData.map((d) => d.sales));
+    const metaValue = currentMeta || 0;
+
+    // Use the higher of max sales or meta value, then add 10% buffer
+    const maxValue = Math.max(maxSalesValue, metaValue);
+    const bufferedMax = maxValue * 1.1;
+
+    return [0, bufferedMax];
+  };
+
+  const yAxisDomain = calculateYAxisDomain();
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
@@ -257,17 +283,18 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ 
-                top: 20, 
-                right: 30, 
-                left: isMobile ? 5 : 20, 
-                bottom: 5 
+              margin={{
+                top: 20,
+                right: 30,
+                left: isMobile ? 5 : 20,
+                bottom: 5,
               }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#666" />
               {!isMobile && (
                 <YAxis
+                  domain={yAxisDomain}
                   tick={{ fontSize: 12 }}
                   stroke="#666"
                   tickFormatter={(value) => formatCurrency(value)}
