@@ -81,27 +81,36 @@ export async function getSalesData(): Promise<SalesData> {
 
     console.log("================================");
 
-    // Skip header row and process data
-    const records: SalesRecord[] = rows.slice(1).map((row) => {
-      const originalVendedor = row[3] || "";
-      const normalizedVendedor = normalizeVendorName(originalVendedor);
-
-      // Log when normalization changes a name
-      if (originalVendedor !== normalizedVendedor) {
-        console.log(
-          `Normalized vendor: "${originalVendedor}" -> "${normalizedVendedor}"`
+    // Skip header row, filter for year 2025, and process data
+    const records: SalesRecord[] = rows
+      .slice(1)
+      .filter((row) => {
+        // Filter to only include rows where column A (year) is 2025
+        const year = row[0];
+        return (
+          year === 2025 || year === "2025" || parseInt(String(year)) === 2025
         );
-      }
+      })
+      .map((row) => {
+        const originalVendedor = row[3] || "";
+        const normalizedVendedor = normalizeVendorName(originalVendedor);
 
-      return {
-        mes: row[1] || "", // Column B - Mes
-        cliente: row[2] || "", // Column C - Cliente
-        vendedor: normalizedVendedor, // Column D - Asesor (normalized)
-        sucursal: row[4] || "", // Column E - Sucursal
-        monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
-        fuente: row[6] || "", // Column G - Fuente
-      };
-    });
+        // Log when normalization changes a name
+        if (originalVendedor !== normalizedVendedor) {
+          console.log(
+            `Normalized vendor: "${originalVendedor}" -> "${normalizedVendedor}"`
+          );
+        }
+
+        return {
+          mes: row[1] || "", // Column B - Mes
+          cliente: row[2] || "", // Column C - Cliente
+          vendedor: normalizedVendedor, // Column D - Asesor (normalized)
+          sucursal: row[4] || "", // Column E - Sucursal
+          monto_negocio: parseFloat(row[5]) || 0, // Column F - Monto (sin IVA)
+          fuente: row[6] || "", // Column G - Fuente
+        };
+      });
 
     // Log processed records
     console.log("=== PROCESSED RECORDS ===");
