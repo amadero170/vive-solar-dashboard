@@ -185,8 +185,8 @@ export default function MonthlySalesChart({ data }: MonthlySalesChartProps) {
       "Diciembre",
     ];
 
-    // Get current month (1-12)
-    const currentMonth = new Date().getMonth() + 1; // getMonth() returns 0-11, so add 1
+    // Get current month (1-12) - Fixed to December 2025
+    const currentMonth = 12; // Mostrar todos los meses de 2025
 
     // Get months from January to current month
     const monthsToShow = allMonths.slice(0, currentMonth);

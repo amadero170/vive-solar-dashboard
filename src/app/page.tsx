@@ -227,8 +227,8 @@ export default function Home() {
         currentMonthSales: 0,
       };
 
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1; // January = 1
+    const currentMonth = 12; // Diciembre para 2025
+    const currentDate = new Date(2025, 11, 1); // 1 de diciembre de 2025
     const monthNames = [
       "Enero",
       "Febrero",

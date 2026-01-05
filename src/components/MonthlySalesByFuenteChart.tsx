@@ -155,7 +155,7 @@ export default function MonthlySalesByFuenteChart({
       "Diciembre",
     ];
 
-    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentMonth = 12; // Mostrar todos los meses de 2025
     const monthsToShow = allMonths.slice(0, currentMonth);
 
     // Create chart data structure

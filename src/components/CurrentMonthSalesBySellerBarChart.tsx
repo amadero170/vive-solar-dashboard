@@ -72,7 +72,7 @@ export default function CurrentMonthSalesBySellerBarChart({
       "Noviembre",
       "Diciembre",
     ];
-    const currentMonth = new Date().getMonth(); // 0-11
+    const currentMonth = 11; // Diciembre (0-indexed) para 2025
     return months[currentMonth];
   };
 
@@ -80,7 +80,7 @@ export default function CurrentMonthSalesBySellerBarChart({
   const getCurrentMonthSalesData = () => {
     if (!data) return [];
 
-    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentMonth = 12; // Diciembre para 2025
     // Get sellers with sales in current month
     const sellerMap = new Map();
 
