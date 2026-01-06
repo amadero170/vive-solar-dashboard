@@ -57,7 +57,7 @@ function normalizeVendorName(name: string): string {
     .join(" ");
 }
 
-export async function getSalesData(): Promise<SalesData> {
+export async function getSalesData(year?: number): Promise<SalesData> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
 
@@ -72,23 +72,30 @@ export async function getSalesData(): Promise<SalesData> {
       throw new Error("No data found in sheet");
     }
 
+    // Use provided year or default to 2025
+    const targetYear = year || 2025;
+
     // Log raw data from Google Sheets
     console.log("=== RAW DATA FROM GOOGLE SHEETS ===");
     console.log("Total rows:", rows.length);
     console.log("First row (headers):", rows[0]);
     console.log("Sample data rows:", rows.slice(1, 4)); // Show first 3 data rows
     console.log("Last row:", rows[rows.length - 1]);
+    console.log("Target year:", targetYear);
 
     console.log("================================");
 
-    // Skip header row, filter for year 2025, and process data
+    // Skip header row, filter for target year, and process data
     const records: SalesRecord[] = rows
       .slice(1)
       .filter((row) => {
-        // Filter to only include rows where column A (year) is 2025
+        // Filter to only include rows where column A (year) matches target year
         const year = row[0];
+        const yearValue = parseInt(String(year));
         return (
-          year === 2025 || year === "2025" || parseInt(String(year)) === 2025
+          year === targetYear ||
+          year === String(targetYear) ||
+          yearValue === targetYear
         );
       })
       .map((row) => {

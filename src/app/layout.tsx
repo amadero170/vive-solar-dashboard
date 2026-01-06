@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "ViveSolar Dashboard",
-  description: "Dashboard de Ventas ViveSolar 2025",
+  description: "Dashboard de Ventas ViveSolar",
   icons: {
     icon: "/logoico.ico",
   },

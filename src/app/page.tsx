@@ -14,10 +14,11 @@ export default function Home() {
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(2025);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const fetchData = async () => {
     try {
@@ -44,7 +45,7 @@ export default function Home() {
       }
 
       const response = await fetch(
-        `/api/sales?v=2&t=${timestamp}&r=${randomId}&s=${sessionId}&nocache=true`,
+        `/api/sales?v=2&t=${timestamp}&r=${randomId}&s=${sessionId}&nocache=true&year=${selectedYear}`,
         {
           method: "GET",
           cache: "no-store",
@@ -89,9 +90,7 @@ export default function Home() {
                 />
               </div>
               <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">
-                  Dashboard de Ventas 2025
-                </div>
+                <div className="text-sm text-gray-600">Dashboard de Ventas</div>
                 <Link
                   href="/forms"
                   className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -138,9 +137,7 @@ export default function Home() {
                 />
               </div>
               <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-600">
-                  Dashboard de Ventas 2025
-                </div>
+                <div className="text-sm text-gray-600">Dashboard de Ventas</div>
                 <Link
                   href="/forms"
                   className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -227,8 +224,16 @@ export default function Home() {
         currentMonthSales: 0,
       };
 
-    const currentMonth = 12; // Diciembre para 2025
-    const currentDate = new Date(2025, 11, 1); // 1 de diciembre de 2025
+    // For 2025, show December. For 2026, show current month
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth =
+      selectedYear === 2025
+        ? 12 // Diciembre para 2025
+        : selectedYear === currentYear
+        ? currentDate.getMonth() + 1 // Mes actual para 2026
+        : 12; // Default to December
+
     const monthNames = [
       "Enero",
       "Febrero",
@@ -291,9 +296,15 @@ export default function Home() {
               />
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Dashboard de Ventas 2025
-              </div>
+              <div className="text-sm text-gray-600">Dashboard de Ventas</div>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                className="px-3 py-1 text-sm border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+              </select>
               <Link
                 href="/forms"
                 className="flex items-center px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -493,21 +504,24 @@ export default function Home() {
           </div>
         )}
 
-        <MonthlySalesChart data={data} />
+        <MonthlySalesChart data={data} selectedYear={selectedYear} />
 
         {/* Bar Charts Row - Side by Side on Desktop */}
         <div className="my-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AnnualSalesBySellerBarChart data={data} />
-            <CurrentMonthSalesBySellerBarChart data={data} />
+            <CurrentMonthSalesBySellerBarChart
+              data={data}
+              selectedYear={selectedYear}
+            />
           </div>
         </div>
 
-        <MonthlySalesBySellerChart data={data} />
+        <MonthlySalesBySellerChart data={data} selectedYear={selectedYear} />
 
         {/* Monthly Sales by Fuente Chart at the bottom */}
         <div className="my-8">
-          <MonthlySalesByFuenteChart data={data} />
+          <MonthlySalesByFuenteChart data={data} selectedYear={selectedYear} />
         </div>
       </div>
     </div>

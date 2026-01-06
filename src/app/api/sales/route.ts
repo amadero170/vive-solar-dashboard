@@ -10,15 +10,21 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Force fresh data on every request
     const timestamp = new Date().toISOString();
 
+    // Get year from query parameters
+    const { searchParams } = new URL(request.url);
+    const yearParam = searchParams.get("year");
+    const year = yearParam ? parseInt(yearParam, 10) : 2025;
+
     console.log(`=== API CALL ${timestamp} ===`);
+    console.log(`Year requested: ${year}`);
 
     const [salesData, sucursalData, vendorData] = await Promise.all([
-      getSalesData(),
+      getSalesData(year),
       getSucursalData(),
       getVendorData(),
     ]);

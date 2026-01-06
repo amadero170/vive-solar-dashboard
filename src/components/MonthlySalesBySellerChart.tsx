@@ -28,10 +28,12 @@ interface TooltipProps {
 
 interface MonthlySalesBySellerChartProps {
   data: SalesData;
+  selectedYear: number;
 }
 
 export default function MonthlySalesBySellerChart({
   data,
+  selectedYear,
 }: MonthlySalesBySellerChartProps) {
   const [selectedSeller, setSelectedSeller] = useState<string>("Todos");
   const [isMobile, setIsMobile] = useState(false);
@@ -178,8 +180,14 @@ export default function MonthlySalesBySellerChart({
       "Diciembre",
     ];
 
-    // Get current month (1-12) - Fixed to December 2025
-    const currentMonth = 12; // Mostrar todos los meses de 2025
+    // For 2025, show all months. For 2026, show up to current month
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = selectedYear === 2025 
+      ? 12 // Todos los meses de 2025
+      : selectedYear === currentYear
+      ? currentDate.getMonth() + 1 // Hasta el mes actual para 2026
+      : 12; // Default to December
 
     // Get months from January to current month
     const monthsToShow = allMonths.slice(0, currentMonth);

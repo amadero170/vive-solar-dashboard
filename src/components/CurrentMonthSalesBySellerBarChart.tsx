@@ -29,10 +29,12 @@ interface TooltipProps {
 
 interface CurrentMonthSalesBySellerBarChartProps {
   data: SalesData;
+  selectedYear: number;
 }
 
 export default function CurrentMonthSalesBySellerBarChart({
   data,
+  selectedYear,
 }: CurrentMonthSalesBySellerBarChartProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -72,7 +74,14 @@ export default function CurrentMonthSalesBySellerBarChart({
       "Noviembre",
       "Diciembre",
     ];
-    const currentMonth = 11; // Diciembre (0-indexed) para 2025
+    // For 2025, show December. For 2026, show current month
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = selectedYear === 2025 
+      ? 11 // Diciembre (0-indexed) para 2025
+      : selectedYear === currentYear
+      ? currentDate.getMonth() // Mes actual (0-indexed) para 2026
+      : 11; // Default to December
     return months[currentMonth];
   };
 
@@ -80,7 +89,14 @@ export default function CurrentMonthSalesBySellerBarChart({
   const getCurrentMonthSalesData = () => {
     if (!data) return [];
 
-    const currentMonth = 12; // Diciembre para 2025
+    // For 2025, show December. For 2026, show current month
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = selectedYear === 2025 
+      ? 12 // Diciembre para 2025
+      : selectedYear === currentYear
+      ? currentDate.getMonth() + 1 // Mes actual para 2026
+      : 12; // Default to December
     // Get sellers with sales in current month
     const sellerMap = new Map();
 
