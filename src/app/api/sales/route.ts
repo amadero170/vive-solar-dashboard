@@ -25,8 +25,8 @@ export async function GET(request: Request) {
 
     const [salesData, sucursalData, vendorData] = await Promise.all([
       getSalesData(year),
-      getSucursalData(),
-      getVendorData(),
+      getSucursalData(year),
+      getVendorData(year),
     ]);
 
     // Log the data being sent to frontend

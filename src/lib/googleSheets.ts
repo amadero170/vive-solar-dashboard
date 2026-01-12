@@ -57,6 +57,14 @@ function normalizeVendorName(name: string): string {
     .join(" ");
 }
 
+// Function to parse currency values (e.g., "$800,000.00" -> 800000)
+function parseCurrency(value: string | undefined): number {
+  if (!value) return 0;
+  // Remove $ and commas, then parse
+  const cleaned = value.replace(/[$,]/g, "");
+  return parseFloat(cleaned) || 0;
+}
+
 export async function getSalesData(year?: number): Promise<SalesData> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
@@ -249,14 +257,17 @@ export async function getSalesData(year?: number): Promise<SalesData> {
   }
 }
 
-export async function getVendorData(): Promise<Map<string, number>> {
+export async function getVendorData(
+  year?: number
+): Promise<Map<string, number>> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
+    const targetYear = year || 2025;
 
-    // Read from "Colaboradores" sheet
+    // Read from "Colaboradores" sheet - incluye columna F para meta 2026
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "Colaboradores!A:E",
+      range: "Colaboradores!A:F",
     });
 
     const rows = response.data.values;
@@ -271,7 +282,13 @@ export async function getVendorData(): Promise<Map<string, number>> {
     rows.slice(1).forEach((row) => {
       const originalVendedor = row[0] || ""; // Column A - Vendedor/Colaborador
       const normalizedVendedor = normalizeVendorName(originalVendedor);
-      const metaMensual = parseFloat(row[4]) || 0; // Column E - Meta mensual
+
+      // Seleccionar la meta según el año
+      // Column E = Meta 2025, Column F = Meta 2026
+      const metaMensual =
+        targetYear === 2026
+          ? parseCurrency(row[5]) // Column F - Meta 2026
+          : parseCurrency(row[4]); // Column E - Meta 2025
 
       // Log when normalization changes a name
       if (originalVendedor !== normalizedVendedor) {
@@ -285,7 +302,7 @@ export async function getVendorData(): Promise<Map<string, number>> {
       }
     });
 
-    console.log("=== VENDOR METAS DATA ===");
+    console.log(`=== VENDOR METAS DATA (${targetYear}) ===`);
     console.log("Vendor targets:", Object.fromEntries(vendorMap));
     console.log("================================");
 
@@ -295,14 +312,17 @@ export async function getVendorData(): Promise<Map<string, number>> {
     return new Map();
   }
 }
-export async function getSucursalData(): Promise<Map<string, number>> {
+export async function getSucursalData(
+  year?: number
+): Promise<Map<string, number>> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
+    const targetYear = year || 2025;
 
-    // Read from "Metas" sheet
+    // Read from "Metas" sheet - incluye columna C para meta 2026
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "Metas!A:B",
+      range: "Metas!A:C",
     });
 
     const rows = response.data.values;
@@ -315,7 +335,13 @@ export async function getSucursalData(): Promise<Map<string, number>> {
 
     rows.slice(1).forEach((row) => {
       const sucursal = row[0] || ""; // Column A - Sucursal
-      const metaMensual = parseFloat(row[1]) || 0; // Column B - Meta mensual
+
+      // Seleccionar la meta según el año
+      // Column B = Meta 2025, Column C = Meta 2026
+      const metaMensual =
+        targetYear === 2026
+          ? parseCurrency(row[2]) // Column C - Meta 2026
+          : parseCurrency(row[1]); // Column B - Meta 2025
 
       if (sucursal && metaMensual > 0) {
         sucursalMap.set(sucursal, metaMensual);
@@ -327,7 +353,7 @@ export async function getSucursalData(): Promise<Map<string, number>> {
     const lastEntry = mapEntries[mapEntries.length - 1];
     const annualGoal = lastEntry ? lastEntry[1] * 12 : 0;
 
-    console.log("=== METAS DATA ===");
+    console.log(`=== METAS DATA (${targetYear}) ===`);
     console.log("Branch targets:", Object.fromEntries(sucursalMap));
     console.log(
       "Total monthly goal (last item):",
