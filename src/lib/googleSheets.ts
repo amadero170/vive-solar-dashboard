@@ -368,3 +368,31 @@ export async function getSucursalData(
     return new Map();
   }
 }
+
+// Function to fetch colaboradores list from 'Colaboradores' tab (Column A)
+export async function getColaboradores(): Promise<string[]> {
+  try {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheet_id,
+      range: "Colaboradores!A2:C",
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      return [];
+    }
+
+    // Filter non-empty colaboradores from Column A
+    const colaboradores = rows
+      .map((row) => (row[0] ? String(row[0]).trim() : ""))
+      .filter((nombre) => nombre.length > 0);
+
+    return Array.from(new Set(colaboradores));
+  } catch (error) {
+    console.error("Error fetching colaboradores from Google Sheets:", error);
+    return [];
+  }
+}
+
