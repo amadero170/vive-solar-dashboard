@@ -63,10 +63,8 @@ export default function FormsPage() {
         {/* Form Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Button 1 - Cargar Negocio Cerrado */}
-          <a
-            href="https://wos-platform.app.n8n.cloud/form/4839a45f-929d-4328-a468-a9f86f73b170"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/formv2"
             className="group"
           >
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
@@ -110,7 +108,7 @@ export default function FormsPage() {
                 </div>
               </div>
             </div>
-          </a>
+          </Link>
 
           {/* Button 2 - Cargar Pago */}
           <a
