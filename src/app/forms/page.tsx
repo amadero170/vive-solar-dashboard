@@ -111,10 +111,8 @@ export default function FormsPage() {
           </Link>
 
           {/* Button 2 - Cargar Pago */}
-          <a
-            href="https://wos-platform.app.n8n.cloud/form/9f4f8ca2-1c5d-46ad-99f2-758d42960d1e"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/form-pago"
             className="group"
           >
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
@@ -158,7 +156,7 @@ export default function FormsPage() {
                 </div>
               </div>
             </div>
-          </a>
+          </Link>
         </div>
 
         {/* Additional Information */}

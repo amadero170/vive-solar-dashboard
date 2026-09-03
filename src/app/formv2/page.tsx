@@ -345,6 +345,13 @@ export default function FormV2Page() {
           second: "2-digit",
         }),
       });
+
+      // Limpiar formulario para evitar envíos duplicados
+      setFormData(initialFormState);
+      setPagoAnticipoFile(null);
+      setContratoFile(null);
+      setCsfFile(null);
+
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: unknown) {
       const error = err as Error;
@@ -434,40 +441,35 @@ export default function FormV2Page() {
         )}
 
         {/* Feedback de Envío Exitoso */}
-        {submittedData && (
-          <div className="mb-8 p-6 rounded-2xl bg-emerald-50 border border-emerald-300 shadow-sm animate-fade-in">
-            <div className="flex items-start gap-4">
-              <CheckCircle2 className="w-7 h-7 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-emerald-950">
-                  ¡Negocio Capturado Exitosamente!
-                </h3>
-                <p className="text-emerald-800 text-sm mt-1">
-                  Se envió y procesó correctamente la información del cliente{" "}
-                  <strong>{submittedData.cliente}</strong> (Negocio #{submittedData.nroNegocio}) a las{" "}
-                  {submittedData.submittedAt}.
-                </p>
-                <div className="mt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
-                  >
-                    Capturar otro negocio
-                  </button>
-                  <Link
-                    href="/"
-                    className="px-4 py-2 bg-white text-emerald-800 border border-emerald-300 text-xs font-semibold rounded-lg hover:bg-emerald-100 transition-colors"
-                  >
-                    Ir al Dashboard
-                  </Link>
-                </div>
-              </div>
+        {submittedData ? (
+          <div className="mb-8 p-8 rounded-2xl bg-emerald-50 border border-emerald-300 shadow-sm animate-fade-in text-center max-w-xl mx-auto">
+            <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+            <h3 className="text-2xl font-extrabold text-emerald-950 mb-2">
+              ¡Negocio Capturado Exitosamente!
+            </h3>
+            <p className="text-emerald-800 text-sm mb-6">
+              Se envió y procesó correctamente la información del cliente{" "}
+              <strong>{submittedData.cliente}</strong> (Negocio #{submittedData.nroNegocio}) a las{" "}
+              {submittedData.submittedAt}.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                Capturar otro negocio
+              </button>
+              <Link
+                href="/"
+                className="px-6 py-3 bg-white text-emerald-800 border border-emerald-300 text-sm font-semibold rounded-xl hover:bg-emerald-100 transition-colors"
+              >
+                Ir al Dashboard
+              </Link>
             </div>
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-8">
           {/* SECCIÓN 1: DATOS GENERALES */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
             <div className="flex items-center gap-3 pb-4 mb-6 border-b border-slate-100">
@@ -1265,6 +1267,7 @@ export default function FormV2Page() {
             </div>
           </div>
         </form>
+        )}
       </main>
     </div>
   );
