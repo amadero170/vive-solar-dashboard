@@ -264,10 +264,10 @@ export async function getVendorData(
     const sheets = google.sheets({ version: "v4", auth });
     const targetYear = year || 2025;
 
-    // Read from "Colaboradores" sheet - incluye columna F para meta 2026
+    // Read from "Colaboradores" sheet - Column E es la Meta Mensual Ventas única
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheet_id,
-      range: "Colaboradores!A:F",
+      range: "Colaboradores!A:E",
     });
 
     const rows = response.data.values;
@@ -283,12 +283,8 @@ export async function getVendorData(
       const originalVendedor = row[0] || ""; // Column A - Vendedor/Colaborador
       const normalizedVendedor = normalizeVendorName(originalVendedor);
 
-      // Seleccionar la meta según el año
-      // Column E = Meta 2025, Column F = Meta 2026
-      const metaMensual =
-        targetYear === 2026
-          ? parseCurrency(row[5]) // Column F - Meta 2026
-          : parseCurrency(row[4]); // Column E - Meta 2025
+      // Meta mensual única (Columna E - Meta Mensual Ventas)
+      const metaMensual = parseCurrency(row[4]);
 
       // Log when normalization changes a name
       if (originalVendedor !== normalizedVendedor) {
