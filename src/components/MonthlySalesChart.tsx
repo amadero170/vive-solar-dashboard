@@ -271,7 +271,7 @@ export default function MonthlySalesChart({ data, selectedYear }: MonthlySalesCh
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-black">
-            <span className="text-black">Ventas Mensuales 2025</span>{" "}
+            <span className="text-black">Ventas Mensuales {selectedYear}</span>{" "}
             {selectedSucursal !== "Todas" && `- ${selectedSucursal}`}
           </CardTitle>
           <Select

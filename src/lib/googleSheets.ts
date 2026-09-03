@@ -80,8 +80,8 @@ export async function getSalesData(year?: number): Promise<SalesData> {
       throw new Error("No data found in sheet");
     }
 
-    // Use provided year or default to 2025
-    const targetYear = year || 2025;
+    // Use provided year or default to current year
+    const targetYear = year || new Date().getFullYear();
 
     // Log raw data from Google Sheets
     console.log("=== RAW DATA FROM GOOGLE SHEETS ===");
@@ -262,7 +262,7 @@ export async function getVendorData(
 ): Promise<Map<string, number>> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
-    const targetYear = year || 2025;
+    const targetYear = year || new Date().getFullYear();
 
     // Read from "Colaboradores" sheet - Column E es la Meta Mensual Ventas única
     const response = await sheets.spreadsheets.values.get({
@@ -313,7 +313,7 @@ export async function getSucursalData(
 ): Promise<Map<string, number>> {
   try {
     const sheets = google.sheets({ version: "v4", auth });
-    const targetYear = year || 2025;
+    const targetYear = year || new Date().getFullYear();
 
     // Read from "Metas" sheet - incluye columna C para meta 2026
     const response = await sheets.spreadsheets.values.get({

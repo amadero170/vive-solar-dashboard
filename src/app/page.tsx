@@ -14,7 +14,9 @@ export default function Home() {
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedYear, setSelectedYear] = useState<number>(() =>
+    new Date().getFullYear()
+  );
 
   useEffect(() => {
     fetchData();

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     // Get year from query parameters
     const { searchParams } = new URL(request.url);
     const yearParam = searchParams.get("year");
-    const year = yearParam ? parseInt(yearParam, 10) : 2025;
+    const year = yearParam ? parseInt(yearParam, 10) : new Date().getFullYear();
 
     console.log(`=== API CALL ${timestamp} ===`);
     console.log(`Year requested: ${year}`);
