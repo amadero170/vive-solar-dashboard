@@ -77,6 +77,15 @@ const initialFormState: FormDataState = {
   anioCierreNegocio: ANIOS.includes(currentYear) ? currentYear : "2026",
 };
 
+const MAX_TOTAL_FILE_SIZE_BYTES = 4.2 * 1024 * 1024; // 4.2 MB (límite Vercel 4.5 MB)
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export default function FormPagoPage() {
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [asesoresList, setAsesoresList] = useState<string[]>([]);
@@ -126,12 +135,38 @@ export default function FormPagoPage() {
     setErrorMessage(null);
   };
 
+  const handleFileSelect = (file: File | null) => {
+    if (!file) {
+      setPagoFile(null);
+      return;
+    }
+
+    if (file.size > MAX_TOTAL_FILE_SIZE_BYTES) {
+      setErrorMessage(
+        `El archivo "${file.name}" (${formatBytes(file.size)}) supera el límite máximo permitido de 4.2 MB. Por favor comprímelo antes de subirlo.`
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setErrorMessage(null);
+    setPagoFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
     if (!pagoFile) {
       setErrorMessage("Por favor adjunta el comprobante de Pago (Obligatorio).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (pagoFile.size > MAX_TOTAL_FILE_SIZE_BYTES) {
+      setErrorMessage(
+        `El comprobante adjunto (${formatBytes(pagoFile.size)}) supera el límite de 4.2 MB permitido por el servidor. Por favor comprime el archivo antes de enviarlo.`
+      );
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -176,12 +211,37 @@ export default function FormPagoPage() {
         body,
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
+      if (res.status === 413) {
         throw new Error(
-          data.error ||
-            data.message ||
+          "El comprobante adjunto es demasiado pesado para el servidor (HTTP 413: límite 4.5 MB). Por favor comprime el archivo antes de enviar."
+        );
+      }
+
+      let data: { success?: boolean; error?: string; message?: string } | null = null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const rawText = await res.text();
+        if (!res.ok) {
+          if (
+            rawText.toLowerCase().includes("entity too large") ||
+            rawText.toLowerCase().includes("payload too large")
+          ) {
+            throw new Error(
+              "El comprobante adjunto excede el tamaño máximo permitido (4.5 MB). Por favor comprime el archivo antes de enviar."
+            );
+          }
+          throw new Error(
+            `Error en el servidor (${res.status}): ${rawText || res.statusText}`
+          );
+        }
+      }
+
+      if (!res.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
             "Ocurrió un error al enviar el formulario a n8n."
         );
       }
@@ -583,8 +643,8 @@ export default function FormPagoPage() {
                   type="file"
                   accept=".jpg,.png,.jpeg,.pdf"
                   onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPagoFile(file);
+                    handleFileSelect(e.target.files?.[0] || null);
+                    e.target.value = "";
                   }}
                   className="hidden"
                   id="pago-file-input"
@@ -605,14 +665,14 @@ export default function FormPagoPage() {
                           {pagoFile.name}
                         </p>
                         <p className="text-xs text-emerald-700">
-                          {(pagoFile.size / 1024).toFixed(1)} KB
+                          {formatBytes(pagoFile.size)} (máx. permitido 4.2 MB)
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
-                          setPagoFile(null);
+                          handleFileSelect(null);
                           const input = document.getElementById("pago-file-input") as HTMLInputElement;
                           if (input) input.value = "";
                         }}
@@ -628,7 +688,7 @@ export default function FormPagoPage() {
                         <p className="text-sm font-medium text-slate-700">
                           Haz clic para seleccionar archivo
                         </p>
-                        <p className="text-xs text-slate-500">.jpg, .png, .jpeg, .pdf</p>
+                        <p className="text-xs text-slate-500">.jpg, .png, .jpeg, .pdf (máx. 4.2 MB)</p>
                       </div>
                     </>
                   )}

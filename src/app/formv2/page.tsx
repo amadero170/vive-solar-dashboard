@@ -138,6 +138,15 @@ const initialFormState: FormDataState = {
   ventaOtroServicio: "",
 };
 
+const MAX_TOTAL_FILE_SIZE_BYTES = 4.2 * 1024 * 1024; // 4.2 MB (límite estricto de Vercel es 4.5 MB)
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export default function FormV2Page() {
   const [formData, setFormData] = useState<FormDataState>(initialFormState);
   const [asesoresList, setAsesoresList] = useState<string[]>([]);
@@ -154,6 +163,42 @@ export default function FormV2Page() {
     nroNegocio: string;
     submittedAt: string;
   } | null>(null);
+
+  const totalFilesSize =
+    (pagoAnticipoFile?.size || 0) +
+    (contratoFile?.size || 0) +
+    (csfFile?.size || 0);
+
+  const handleFileChange = (
+    file: File | null,
+    type: "pago" | "contrato" | "csf"
+  ) => {
+    if (!file) {
+      if (type === "pago") setPagoAnticipoFile(null);
+      if (type === "contrato") setContratoFile(null);
+      if (type === "csf") setCsfFile(null);
+      return;
+    }
+
+    const nextPago = type === "pago" ? file : pagoAnticipoFile;
+    const nextContrato = type === "contrato" ? file : contratoFile;
+    const nextCsf = type === "csf" ? file : csfFile;
+    const prospectiveTotal =
+      (nextPago?.size || 0) + (nextContrato?.size || 0) + (nextCsf?.size || 0);
+
+    if (prospectiveTotal > MAX_TOTAL_FILE_SIZE_BYTES) {
+      setErrorMessage(
+        `El archivo "${file.name}" (${formatBytes(file.size)}) hace que el peso total acumulado (${formatBytes(prospectiveTotal)}) supere el límite permitido de 4.2 MB. Por favor comprime el archivo o PDF antes de adjuntarlo.`
+      );
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setErrorMessage(null);
+    if (type === "pago") setPagoAnticipoFile(file);
+    if (type === "contrato") setContratoFile(file);
+    if (type === "csf") setCsfFile(file);
+  };
 
   // Cargar lista dinámica de Asesores 100% desde la pestaña "Colaboradores" de Google Sheets
   useEffect(() => {
@@ -214,6 +259,14 @@ export default function FormV2Page() {
 
     if (!pagoAnticipoFile) {
       setErrorMessage("Por favor adjunta el comprobante de Pago Anticipo (Obligatorio).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (totalFilesSize > MAX_TOTAL_FILE_SIZE_BYTES) {
+      setErrorMessage(
+        `El peso total de los archivos adjuntos (${formatBytes(totalFilesSize)}) supera el límite de 4.2 MB permitido por el servidor. Por favor comprime los archivos o PDF antes de enviarlos.`
+      );
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -326,12 +379,37 @@ export default function FormV2Page() {
         body,
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
+      if (res.status === 413) {
         throw new Error(
-          data.error ||
-            data.message ||
+          "Los archivos adjuntos son demasiado pesados para el servidor (HTTP 413: límite 4.5 MB). Por favor comprime los documentos o PDF antes de enviar."
+        );
+      }
+
+      let data: { success?: boolean; error?: string; message?: string } | null = null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const rawText = await res.text();
+        if (!res.ok) {
+          if (
+            rawText.toLowerCase().includes("entity too large") ||
+            rawText.toLowerCase().includes("payload too large")
+          ) {
+            throw new Error(
+              "Los archivos adjuntos son demasiado pesados para el servidor (límite 4.5 MB). Por favor comprime los documentos antes de enviar."
+            );
+          }
+          throw new Error(
+            `Error en el servidor (${res.status}): ${rawText || res.statusText}`
+          );
+        }
+      }
+
+      if (!res.ok || !data?.success) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
             "Ocurrió un error al enviar el formulario a n8n."
         );
       }
@@ -1117,13 +1195,16 @@ export default function FormV2Page() {
 
                 {pagoAnticipoFile ? (
                   <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs">
-                    <span className="truncate max-w-[150px] font-medium text-slate-700">
+                    <span className="truncate max-w-[120px] font-medium text-slate-700" title={pagoAnticipoFile.name}>
                       {pagoAnticipoFile.name}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-normal ml-1">
+                      ({formatBytes(pagoAnticipoFile.size)})
                     </span>
                     <button
                       type="button"
-                      onClick={() => setPagoAnticipoFile(null)}
-                      className="text-slate-400 hover:text-red-500 p-1"
+                      onClick={() => handleFileChange(null, "pago")}
+                      className="text-slate-400 hover:text-red-500 p-1 ml-auto"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1135,7 +1216,10 @@ export default function FormV2Page() {
                     <input
                       type="file"
                       accept=".jpg,.png,.jpeg,.pdf"
-                      onChange={(e) => setPagoAnticipoFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        handleFileChange(e.target.files?.[0] || null, "pago");
+                        e.target.value = "";
+                      }}
                       className="hidden"
                     />
                   </label>
@@ -1151,13 +1235,16 @@ export default function FormV2Page() {
 
                 {contratoFile ? (
                   <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs">
-                    <span className="truncate max-w-[150px] font-medium text-slate-700">
+                    <span className="truncate max-w-[120px] font-medium text-slate-700" title={contratoFile.name}>
                       {contratoFile.name}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-normal ml-1">
+                      ({formatBytes(contratoFile.size)})
                     </span>
                     <button
                       type="button"
-                      onClick={() => setContratoFile(null)}
-                      className="text-slate-400 hover:text-red-500 p-1"
+                      onClick={() => handleFileChange(null, "contrato")}
+                      className="text-slate-400 hover:text-red-500 p-1 ml-auto"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1169,7 +1256,10 @@ export default function FormV2Page() {
                     <input
                       type="file"
                       accept=".jpg,.png,.jpeg,.pdf,.doc,.docx"
-                      onChange={(e) => setContratoFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        handleFileChange(e.target.files?.[0] || null, "contrato");
+                        e.target.value = "";
+                      }}
                       className="hidden"
                     />
                   </label>
@@ -1185,13 +1275,16 @@ export default function FormV2Page() {
 
                 {csfFile ? (
                   <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs">
-                    <span className="truncate max-w-[150px] font-medium text-slate-700">
+                    <span className="truncate max-w-[120px] font-medium text-slate-700" title={csfFile.name}>
                       {csfFile.name}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-normal ml-1">
+                      ({formatBytes(csfFile.size)})
                     </span>
                     <button
                       type="button"
-                      onClick={() => setCsfFile(null)}
-                      className="text-slate-400 hover:text-red-500 p-1"
+                      onClick={() => handleFileChange(null, "csf")}
+                      className="text-slate-400 hover:text-red-500 p-1 ml-auto"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1203,13 +1296,38 @@ export default function FormV2Page() {
                     <input
                       type="file"
                       accept=".jpg,.png,.jpeg,.pdf"
-                      onChange={(e) => setCsfFile(e.target.files?.[0] || null)}
+                      onChange={(e) => {
+                        handleFileChange(e.target.files?.[0] || null, "csf");
+                        e.target.value = "";
+                      }}
                       className="hidden"
                     />
                   </label>
                 )}
               </div>
             </div>
+
+            {totalFilesSize > 0 && (
+              <div
+                className={`mt-4 text-xs flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border ${
+                  totalFilesSize > MAX_TOTAL_FILE_SIZE_BYTES
+                    ? "bg-red-50 border-red-200 text-red-700"
+                    : "bg-slate-100/80 border-slate-200 text-slate-600"
+                }`}
+              >
+                <span>
+                  Peso total de archivos:{" "}
+                  <strong>{formatBytes(totalFilesSize)}</strong> / 4.2 MB máx.
+                </span>
+                {totalFilesSize > MAX_TOTAL_FILE_SIZE_BYTES ? (
+                  <span className="font-semibold text-red-600">
+                    ⚠️ Excede el límite de 4.2 MB para el servidor
+                  </span>
+                ) : (
+                  <span className="text-emerald-600 font-medium">✓ Tamaño permitido</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* BARRA DE ACCIONES INFERIOR */}

@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Check,
   Copy,
-  ExternalLink,
   HelpCircle,
   Loader2,
   Search,
